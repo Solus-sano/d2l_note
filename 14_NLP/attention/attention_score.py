@@ -1,8 +1,11 @@
+import sys
+sys.path.append("../")
+
 import math
 import torch
 from torch import nn
 import torch.nn.functional as F
-from visualization import show_heatmaps
+from attention.visualization import show_heatmaps
 
 def sequence_mask(X, valid_len, value=0):
     maxlen = X.size(1)
@@ -79,7 +82,7 @@ class DotProductAttention(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, Q, K, V, valid_lens=None):
-        assert Q.shape[-1] == K.shape[-1]
+        assert Q.shape[-1] == K.shape[-1]# shape = (batch,查询或键值对个数,维数)
         d = Q.shape[-1]
         scores = torch.bmm(Q, K.transpose(1,2)) / math.sqrt(d)
         self.attention_weights = mask_softmax(scores, valid_lens)
