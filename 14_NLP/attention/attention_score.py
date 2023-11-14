@@ -80,6 +80,7 @@ class DotProductAttention(nn.Module):
     def __init__(self, dropout, **kwargs):
         super(DotProductAttention, self).__init__(**kwargs)
         self.dropout = nn.Dropout(dropout)
+        self.attention_weights = None
 
     def forward(self, Q, K, V, valid_lens=None):
         assert Q.shape[-1] == K.shape[-1]# shape = (batch,查询或键值对个数,维数)

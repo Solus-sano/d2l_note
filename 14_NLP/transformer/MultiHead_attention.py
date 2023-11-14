@@ -22,6 +22,7 @@ class MultiHead_Attention(nn.Module):
         self.num_heads = num_heads
         self.attention = DotProductAttention(dropout=dropout)
 
+        #将多个头并行计算，即W的输出维度都扩大num_heads倍
         self.W_q = nn.Linear(query_size, num_hiddens * num_heads, bias=bias)
         self.W_k = nn.Linear(key_size, num_hiddens * num_heads, bias=bias)
         self.W_v = nn.Linear(value_size, num_hiddens * num_heads, bias=bias)
@@ -49,7 +50,7 @@ class MultiHead_Attention(nn.Module):
         X = X.reshape(X.shape[0], X.shape[1], self.num_heads, -1)
         X = X.permute(0, 2, 1, 3)
 
-        return X.reshape(-1, X.shape[2], X.shape[3])
+        return X.reshape(-1, X.shape[2], X.shape[3])# (batch * num_heads, token_lens, dims)
 
     def transpose_output(self, X: torch.Tensor):
         """逆转transpose_qkv"""
@@ -79,41 +80,7 @@ class AddNorm(nn.Module):
         return self.LN(self.dropout(Y) + X)
 
 
-class EncoderBlock(nn.Module):
-    def __init__(self,
-            Q_size: int,
-            K_size: int,
-            V_size: int,
-            num_hiddens: int,
-            num_heads: int,
-            dropout: int,
-            ffn_in_ch: int,
-            ffn_hid_ch: int,
-            nomalized_shape: torch.Tensor,
-            use_bias = False       
-        ):
-        super().__init__()
 
-        self.attention = MultiHead_Attention(
-            key_size=K_size,
-            query_size=Q_size,
-            value_size= V_size,
-            num_hiddens=num_hiddens,
-            num_heads=num_heads,
-            dropout=dropout,
-            bias=use_bias
-        )
-        self.addnorm1 = AddNorm(nomalized_shape,dropout)
-        self.ffn = PositionWiseFFN(
-            in_ch=ffn_in_ch,
-            hid_ch=ffn_hid_ch,
-            out_ch=num_hiddens
-        )
-        self.addnorm2 = AddNorm(nomalized_shape,dropout)
-
-    def forward(self, X, valid_lens):
-        X = self.addnorm1(X, self.attention(X,X,X,valid_lens))
-        return self.addnorm2(X, self.ffn(X))
 
 def test_MultiHead():
     attention = MultiHead_Attention(
@@ -138,12 +105,5 @@ def test_LN():
     # 在训练模式下计算X的均值和方差
     print('layer norm:', ln(X).detach(),'\nbatch norm:', bn(X).detach())
 
-def test_encoder():
-    X = torch.ones([3,77,768])
-    encoder = EncoderBlock(768,768,768,768,5,0.8,768,256,[77,768]).eval()
-    valid_lens = torch.tensor([4,3,2])
-    Y = encoder(X,valid_lens)
-    print(Y.shape)
-
 if __name__ == '__main__':
-    test_encoder()
+    test_LN()
